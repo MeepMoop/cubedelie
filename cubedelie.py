@@ -2,6 +2,10 @@
 import os
 from dotenv import load_dotenv
 
+import threading
+import http.server
+import socketserver
+
 import re
 import requests
 from collections import defaultdict
@@ -331,4 +335,26 @@ event_aliases = {"3x3x3": "3x3x3",
 passcode_db = {}
 scramble_stack = {}
 
-bot.run(TOKEN)
+def start_bot():
+  bot.run(TOKEN)
+
+class RequestHandler(http.server.SimpleHTTPRequestHandler):
+  def do_GET(self):
+    self.send_response(200)
+    self.send_header("Content-type", "text/html")
+    self.end_headers()
+    self.wfile.write(bytes("Hello World", "utf-8"))
+
+def start_server():
+  with socketserver.TCPServer(("", 8011), RequestHandler) as http1:
+    http1.serve_forever()
+
+if __name__ == "__main__":
+  discord_thread = threading.Thread(target = start_bot)
+  http_thread = threading.Thread(target = start_server)
+
+  discord_thread.start()
+  http_thread.start()
+
+  discord_thread.join()
+  http_thread.join()
