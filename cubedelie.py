@@ -21,6 +21,7 @@ from discord.ext.commands import CommandNotFound
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = os.getenv('PORT')
+SECRET = os.getenv('SECRET')
 
 bot = commands.Bot(intents=discord.Intents.all(), command_prefix='!')
 
@@ -180,13 +181,16 @@ async def passcode(ctx, *args):
 
   # send code
   msg = await send_passcode(ctx, event, event_round, scramble_set, passcode)
+  await add_to_scramble_stack(msg.channel, competition, msg)
 
+async def add_to_scramble_stack(channel, competition, msg):
   # start new scramble stack
   global scramble_stack
+  print(scramble_stack)
   if competition in scramble_stack:
     for i in range(1, len(scramble_stack[competition]) + 1):
       m = scramble_stack[competition][-i]
-      _m = await ctx.channel.fetch_message(m.id)
+      _m = await channel.fetch_message(m.id)
       if not _m:
         continue
       elif any(r.emoji == '✅' for r in _m.reactions):
@@ -351,7 +355,9 @@ passcode_db = {
   "test2023": {
     "3x3x3": {
       "1": [
-        'asdasd'
+        'asdasd',
+        'asdasd2',
+        'asdasd23'
       ]
     }
   }
@@ -376,13 +382,21 @@ async def ping(request):
 
 @server.add_route(path="/{channelName}/passcode/{event}/{round:\d+}/{scrambleSet:\d+}", method="POST")
 async def handle_passcode(request):
-  global passcode_db
-  competition = request.match_info['channelName']
+  if 'secret' not in request.rel_url.query:
+    return web.json_response(data={"message": "missing secret"}, status=401)
 
-  if competition not in passcode_db:
+  secret = request.rel_url.query['secret']
+
+  if secret != SECRET:
+    return web.json_response(data={"message": "invalid secret"}, status=401)
+
+  global passcode_db
+  competitionId = request.match_info['channelName']
+
+  if competitionId not in passcode_db:
     return web.json_response(data={"message": "competition not found"}, status=404)
 
-  channel = discord.utils.get(bot.get_all_channels(), name=competition)
+  channel = discord.utils.get(bot.get_all_channels(), name=competitionId)
 
   if channel is None:
     return web.json_response(data={"message": "channel not found"}, status=404)
@@ -393,7 +407,7 @@ async def handle_passcode(request):
 
   event = event_aliases.get(event, event)
 
-  competition_data = passcode_db[competition]
+  competition_data = passcode_db[competitionId]
   if event not in competition_data:
     return web.json_response(data={"message": "event not found"}, status=404)
   
@@ -406,7 +420,8 @@ async def handle_passcode(request):
   passcode = competition_data[event][round][int(scramble_set)]
   print(f"Sending passcode {passcode} for {event} round {round} scramble set {scramble_set} to {channel.name}")
   msg = await send_passcode(channel, event, round, int(scramble_set), passcode)
+  await add_to_scramble_stack(channel, competitionId, msg)
 
-  return web.json_response(data={"message": passcode}, status=200)
+  return web.json_response(data={"message": "sent passcode"}, status=200)
 
 bot.run(TOKEN)
