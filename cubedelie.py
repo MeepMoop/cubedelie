@@ -347,8 +347,19 @@ passcode_db = {}
 scramble_stack = {}
 
 @server.add_route(path="/ping", method="GET")
+async def ping():
+  return web.json_response(data={"message": "pong"}, status=200)
+
+@server.add_route(path="/ping/{channelId:\d+}", method="GET")
 async def ping(request):
-  await bot.get_channel(1072569056617582663).send('pong')
+  channelId = request.match_info['channelId']
+  channel = bot.get_channel(int(channelId))
+
+  if channel is None:
+    print(f"channel {channelId} not found")
+    return web.json_response(data={"message": "channel not found"}, status=404)
+  
+  await channel.send('pong')
   return web.json_response(data={"message": "pong"}, status=200)
 
 bot.run(TOKEN)
