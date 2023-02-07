@@ -2,9 +2,13 @@
 import os
 from dotenv import load_dotenv
 
-import threading
-import http.server
-import socketserver
+# import asyncio
+# import threading
+# import http.server
+# import socketserver
+# from urllib.parse import urlparse, parse_qs
+import server
+from aiohttp import web
 
 import re
 import requests
@@ -16,12 +20,19 @@ from discord.ext.commands import CommandNotFound
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+PORT = os.getenv('PORT')
 
 bot = commands.Bot(intents=discord.Intents.all(), command_prefix='!')
 
 @bot.event
 async def on_ready():
   print(f"{bot.user} has connected to Discord!")
+  bot.server = server.HTTPServer(
+    bot=bot,
+    host="0.0.0.0",
+    port="8000",
+  )
+  await bot.server.start()
 
 @bot.event
 async def on_thread_create(th):
@@ -335,26 +346,9 @@ event_aliases = {"3x3x3": "3x3x3",
 passcode_db = {}
 scramble_stack = {}
 
-def start_bot():
-  bot.run(TOKEN)
+@server.add_route(path="/ping", method="GET")
+async def ping(request):
+  await bot.get_channel(1072569056617582663).send('pong')
+  return web.json_response(data={"message": "pong"}, status=200)
 
-class RequestHandler(http.server.SimpleHTTPRequestHandler):
-  def do_GET(self):
-    self.send_response(200)
-    self.send_header("Content-type", "text/html")
-    self.end_headers()
-    self.wfile.write(bytes("Hello World", "utf-8"))
-
-def start_server():
-  with socketserver.TCPServer(("", 8011), RequestHandler) as http1:
-    http1.serve_forever()
-
-if __name__ == "__main__":
-  discord_thread = threading.Thread(target = start_bot)
-  http_thread = threading.Thread(target = start_server)
-
-  discord_thread.start()
-  http_thread.start()
-
-  discord_thread.join()
-  http_thread.join()
+bot.run(TOKEN)
