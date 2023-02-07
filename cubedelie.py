@@ -2,11 +2,6 @@
 import os
 from dotenv import load_dotenv
 
-# import asyncio
-# import threading
-# import http.server
-# import socketserver
-# from urllib.parse import urlparse, parse_qs
 import server
 from aiohttp import web
 
