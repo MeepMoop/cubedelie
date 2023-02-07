@@ -347,7 +347,15 @@ event_aliases = {"3x3x3": "3x3x3",
 "mbld": "3x3x3 Multiple Blindfolded",
 "multi": "3x3x3 Multiple Blindfolded"}
 
-passcode_db = {}
+passcode_db = {
+  "test2023": {
+    "3x3x3": {
+      "1": [
+        'asdasd'
+      ]
+    }
+  }
+}
 scramble_stack = {}
 
 @server.add_route(path="/ping", method="GET")
@@ -367,16 +375,21 @@ async def ping(request):
   return web.json_response(data={"message": "pong"}, status=200)
 
 @server.add_route(path="/{channelName}/passcode/{event}/{round:\d+}/{scrambleSet:\d+}", method="POST")
-async def send_passcode(request):
+async def handle_passcode(request):
   global passcode_db
   competition = request.match_info['channelName']
 
   if competition not in passcode_db:
     return web.json_response(data={"message": "competition not found"}, status=404)
 
+  channel = discord.utils.get(bot.get_all_channels(), name=competition)
+
+  if channel is None:
+    return web.json_response(data={"message": "channel not found"}, status=404)
+
   event = request.match_info['event']
   round = request.match_info['round']
-  scrambleSet = request.match_info['scrambleSet']
+  scramble_set = request.match_info['scrambleSet']
 
   event = event_aliases.get(event, event)
 
@@ -387,10 +400,12 @@ async def send_passcode(request):
   if round not in competition_data[event]:
     return web.json_response(data={"message": "round not found"}, status=404)
 
-  if not competition_data[event][round][int(scrambleSet)]:
+  if not competition_data[event][round][int(scramble_set)]:
     return web.json_response(data={"message": "scramble set not found"}, status=404)
 
-  passcode = competition_data[event][round][int(scrambleSet)]
+  passcode = competition_data[event][round][int(scramble_set)]
+  print(f"Sending passcode {passcode} for {event} round {round} scramble set {scramble_set} to {channel.name}")
+  msg = await send_passcode(channel, event, round, int(scramble_set), passcode)
 
   return web.json_response(data={"message": passcode}, status=200)
 
