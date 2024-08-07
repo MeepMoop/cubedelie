@@ -146,6 +146,8 @@ async def passcode(ctx, *args):
   competition_data = passcode_db[competition]
 
   # handle args
+  if len(args) == 0 or len(args) > 3:
+    return
   if args[0].lower() not in event_aliases:
     return
   if len(args) == 1:
