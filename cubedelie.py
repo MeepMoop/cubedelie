@@ -268,6 +268,9 @@ async def competitions(ctx):
 @commands.has_permissions(administrator=True)
 async def check_stack(ctx):
   global scramble_stack
+  if len(scramble_stack) == 0:
+    await ctx.send("Scramble stack empty!")
+    return
   stack_info = "\n".join(f"competition: {competition}, stack: {len(scramble_stack[competition])}" for competition in scramble_stack)
   await ctx.send(stack_info)
 
