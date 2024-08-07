@@ -91,12 +91,14 @@ async def on_reaction_add(reaction, user):
 
       # add to scramble stack
       scramble_stack[competition].append(new_msg)
+      print(f"add - competition: {competition}, stack: {len(scramble_stack[competition])}")
 
     elif reaction.emoji == '↩️':
       if competition not in scramble_stack or msg not in scramble_stack[competition]:
         return
       await msg.delete()
       scramble_stack[competition].pop(-1)
+      print(f"pop - competition: {competition}, stack: {len(scramble_stack[competition])}")
       if len(scramble_stack[competition]) > 0:
         prev_msg = await msg.channel.fetch_message(scramble_stack[competition][-1].id)
         await prev_msg.clear_reactions()
@@ -146,9 +148,7 @@ async def passcode(ctx, *args):
   competition_data = passcode_db[competition]
 
   # handle args
-  if len(args) == 0 or len(args) > 3:
-    return
-  if args[0].lower() not in event_aliases:
+  if len(args) == 0 or args[0].lower() not in event_aliases:
     return
   if len(args) == 1:
     event, event_round, scramble_set = event_aliases[args[0].lower()], '1', 0
@@ -159,7 +159,7 @@ async def passcode(ctx, *args):
       event, event_round, scramble_set = event_aliases[args[0].lower()], '1', ord(args[1].lower()) - 97
     else:
       return
-  elif len(args) == 3:
+  elif len(args) >= 3:
     if args[1].isnumeric() and args[2].isalpha():
       event, event_round, scramble_set = event_aliases[args[0].lower()], args[1], ord(args[2].lower()) - 97
     else:
@@ -183,7 +183,6 @@ async def passcode(ctx, *args):
 async def add_to_scramble_stack(channel, competition, msg):
   # start new scramble stack
   global scramble_stack
-  print(scramble_stack)
   if competition in scramble_stack:
     for i in range(1, len(scramble_stack[competition]) + 1):
       m = scramble_stack[competition][-i]
@@ -196,6 +195,7 @@ async def add_to_scramble_stack(channel, competition, msg):
         await m.clear_reactions()
         await m.add_reaction('✅')
   scramble_stack[competition] = [msg]
+  print(f"add - competition: {competition}, stack: {len(scramble_stack[competition])}")
 
 @bot.command()
 @commands.has_role("Delegate")
@@ -263,6 +263,13 @@ async def competitions(ctx):
     await ctx.send('No competitions have been added yet!')
     return
   await ctx.send(', '.join(passcode_db.keys()))
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def check_stack(ctx):
+  global scramble_stack
+  stack_info = "\n".join(f"competition: {competition}, stack: {len(scramble_stack[competition])}" for competition in scramble_stack)
+  await ctx.send(stack_info)
 
 async def send_passcode(ctx, event, event_round, scramble_set, passcode):
   msg = await ctx.send(f'**{event} Round {event_round} Attempt {scramble_set + 1}**: {passcode}' if event == "3x3x3 Multiple Blindfolded" or event == "3x3x3 Fewest Moves"
@@ -348,17 +355,7 @@ event_aliases = {"3x3x3": "3x3x3",
 "mbld": "3x3x3 Multiple Blindfolded",
 "multi": "3x3x3 Multiple Blindfolded"}
 
-passcode_db = {
-  "test2023": {
-    "3x3x3": {
-      "1": [
-        'asdasd',
-        'asdasd2',
-        'asdasd23'
-      ]
-    }
-  }
-}
+passcode_db = {}
 scramble_stack = {}
 
 @server.add_route(path="/ping", method="GET")
