@@ -283,7 +283,7 @@ async def send_passcode(ctx, event, event_round, scramble_set, passcode):
 
 re_unigroup = re.compile(r'(?P<event>.+) Round (?P<event_round>\d+): (?P<passcode>\w+)')
 re_multigroup = re.compile(r'(?P<event>.+) Round (?P<event_round>\d+) Scramble Set (?P<scramble_set>[A-Z]+): (?P<passcode>\w+)')
-re_attempt = re.compile(r'(?P<event>.+) Round (?P<event_round>\d+) Attempt (?P<scramble_set>\d+): (?P<passcode>\w+)')
+re_attempt = re.compile(r'(?P<event>.+) Round (?P<event_round>\d+) Scramble Set A Attempt (?P<scramble_set>\d+): (?P<passcode>\w+)')
 
 def parse_passcode(line):
   line = line.strip()
